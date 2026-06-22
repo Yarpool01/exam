@@ -199,8 +199,7 @@ async def admin_panel(request: Request):
         "request": request, 
         "students": students,
         "allowed_grades": ALLOWED_GRADES, 
-        "vmap": vmap,
-        "msg": request.query_params.get("msg", "")  # <-- добавить
+        "vmap": vmap
     })
 
 @app.post("/admin/add_student")
