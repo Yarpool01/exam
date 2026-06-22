@@ -14,7 +14,7 @@ import io
 import os
 import base64
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 
 DB_PATH = "exam.db"
@@ -160,8 +160,10 @@ def get_question_by_id(qid, questions_data):
 
 def is_expired(started_at: str, level: str) -> bool:
     start = datetime.fromisoformat(started_at)
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
     limit = TIME_LIMITS.get(level, 60)
-    return datetime.now() > start + timedelta(minutes=limit)
+    return datetime.now(timezone.utc) > start + timedelta(minutes=limit)
 
 # ─── Violation logging ───
 def log_violation(student_id: int, vtype: str, details: str = "", exam_id: int = None):
@@ -390,7 +392,7 @@ async def start_exam(token: str):
 
     conn.execute(
         "INSERT INTO exams (student_id, questions_json, max_score, started_at) VALUES (?, ?, ?, ?)",
-        (student["id"], json.dumps(q_ids), max_score, datetime.now().isoformat())
+        (student["id"], json.dumps(q_ids), max_score, datetime.now(timezone.utc).isoformat())
     )
     conn.execute("UPDATE students SET status = 'done' WHERE id = ?", (student["id"],))
     conn.commit()
@@ -424,9 +426,10 @@ async def exam_page(request: Request, token: str):
     q_ids = json.loads(exam["questions_json"])
     exam_questions = [get_question_by_id(qid, questions_data) for qid in q_ids if get_question_by_id(qid, questions_data)]
 
-    expires = datetime.fromisoformat(exam["started_at"]) + timedelta(
-        minutes=TIME_LIMITS.get(student["assigned_level"], 60)
-    )
+    expires = datetime.fromisoformat(exam["started_at"])
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    expires = expires + timedelta(minutes=TIME_LIMITS.get(student["assigned_level"], 60))
 
     return templates.TemplateResponse("exam.html", {
         "request": request, "student": dict(student), "questions": exam_questions,
@@ -463,7 +466,7 @@ async def submit_exam(request: Request, token: str):
 
     conn.execute(
         "UPDATE exams SET answers_json = ?, finished_at = ? WHERE id = ?",
-        (json.dumps(answers), datetime.now().isoformat(), exam["id"])
+        (json.dumps(answers), datetime.now(timezone.utc).isoformat(), exam["id"])
     )
     conn.commit()
     conn.close()
@@ -498,7 +501,7 @@ async def bonus_page(request: Request, token: str):
         q_ids = [q["id"] for q in selected]
         conn.execute(
             "INSERT INTO exams (student_id, questions_json, max_score, started_at, is_bonus) VALUES (?, ?, ?, ?, 1)",
-            (student["id"], json.dumps(q_ids), max_score, datetime.now().isoformat())
+            (student["id"], json.dumps(q_ids), max_score, datetime.now(timezone.utc).isoformat())
         )
         conn.commit()
         exam = conn.execute(
@@ -515,7 +518,10 @@ async def bonus_page(request: Request, token: str):
     q_ids = json.loads(exam["questions_json"])
     bonus_questions = [get_question_by_id(qid, questions_data) for qid in q_ids if get_question_by_id(qid, questions_data)]
 
-    expires = datetime.fromisoformat(exam["started_at"]) + timedelta(minutes=TIME_LIMITS["3"])
+    expires = datetime.fromisoformat(exam["started_at"])
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    expires = expires + timedelta(minutes=TIME_LIMITS["3"])
 
     return templates.TemplateResponse("bonus.html", {
         "request": request, "student": dict(student), "questions": bonus_questions,
@@ -551,7 +557,7 @@ async def submit_bonus(request: Request, token: str):
 
     conn.execute(
         "UPDATE exams SET answers_json = ?, finished_at = ? WHERE id = ?",
-        (json.dumps(answers), datetime.now().isoformat(), exam["id"])
+        (json.dumps(answers), datetime.now(timezone.utc).isoformat(), exam["id"])
     )
     conn.execute("UPDATE students SET bonus_status = 'done' WHERE id = ?", (student["id"],))
     conn.commit()
