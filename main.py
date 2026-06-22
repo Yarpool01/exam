@@ -196,8 +196,11 @@ async def admin_panel(request: Request):
 
     conn.close()
     return templates.TemplateResponse("admin.html", {
-        "request": request, "students": students,
-        "allowed_grades": ALLOWED_GRADES, "vmap": vmap
+        "request": request, 
+        "students": students,
+        "allowed_grades": ALLOWED_GRADES, 
+        "vmap": vmap,
+        "msg": request.query_params.get("msg", "")  # <-- добавить
     })
 
 @app.post("/admin/add_student")

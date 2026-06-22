@@ -219,8 +219,8 @@
     <div class="container">
         <h1>Админ-панель экзамена</h1>
 
-        {% if request.query_params.msg %}
-        <div class="msg-banner">{{ request.query_params.msg }}</div>
+        {% if msg %}
+        <div class="msg-banner">{{ msg }}</div>
         {% endif %}
 
         <div class="add-form">
