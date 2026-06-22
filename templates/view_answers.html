@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ответы студента — {{ exam.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        h1 { font-size: 22px; margin-bottom: 8px; color: #1a1a2e; }
+        .subtitle { color: #666; margin-bottom: 24px; }
+        .info-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .info-item { display: flex; gap: 8px; }
+        .info-label { color: #888; }
+        .info-value { font-weight: 600; color: #1a1a2e; }
+        .level-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .level-3 { background: #e8f5e9; color: #2e7d32; }
+        .level-4 { background: #fff3e0; color: #ef6c00; }
+        .level-5 { background: #fce4ec; color: #c2185b; }
+        .violations-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .violations-box h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .violations-box .count {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .violations-box .count-0 { color: #2e7d32; }
+        .violations-box .count-low { color: #f57c00; }
+        .violations-box .count-high { color: #c62828; }
+        .violations-list {
+            margin-top: 12px;
+        }
+        .violations-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #555;
+        }
+        .violations-list li:last-child { border-bottom: none; }
+        .violations-list .v-time { color: #888; font-size: 12px; }
+        .violations-list .v-type { font-weight: 500; color: #c62828; }
+        .grade-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .grade-section h3 { font-size: 16px; margin-bottom: 12px; }
+        .grade-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .grade-form select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .grade-form button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #2e7d32;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .current-grade {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2e7d32;
+        }
+        .answer-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .answer-card .q-number {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .answer-card .q-text {
+            font-size: 16px;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .answer-card .q-answer {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #1976d2;
+        }
+        .answer-card .q-answer-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .answer-card .q-answer-text {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .no-answer {
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/admin" class="back-btn">← Назад к списку</a>
+
+        <h1>Ответы студента</h1>
+        <p class="subtitle">{{ exam.name }} — Билет на {{ exam.assigned_level }}</p>
+
+        <div class="info-bar">
+            <div class="info-item">
+                <span class="info-label">Билет:</span>
+                <span class="level-badge level-{{ exam.assigned_level }}">На {{ exam.assigned_level }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Начало:</span>
+                <span class="info-value">{{ exam.started_at[:16] if exam.started_at else '—' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Окончание:</span>
+                <span class="info-value">{{ exam.finished_at[:16] if exam.finished_at else '—' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Тип:</span>
+                <span class="info-value">{% if exam.is_bonus %}Дополнительный{% else %}Основной{% endif %}</span>
+            </div>
+        </div>
+
+        <div class="violations-box">
+            <h3>
+                Нарушения во время экзамена
+                <span class="count {% if exam.violations == 0 %}count-0{% elif exam.violations < 3 %}count-low{% else %}count-high{% endif %}">
+                    {{ exam.violations or 0 }}
+                </span>
+            </h3>
+            {% if vlogs %}
+            <ul class="violations-list">
+                {% for v in vlogs %}
+                <li>
+                    <span class="v-time">{{ v.created_at[:16] }}</span> —
+                    <span class="v-type">{{ v.violation_type }}</span>
+                    {% if v.details %}<span style="color:#888;font-size:12px;">({{ v.details }})</span>{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color:#2e7d32;font-size:14px;">✓ Нарушений не зафиксировано</p>
+            {% endif %}
+        </div>
+
+        <div class="grade-section">
+            <h3>Оценка</h3>
+            {% if exam.grade is not none %}
+            <div class="current-grade">Поставлена оценка: {{ exam.grade }}</div>
+            {% else %}
+            <form class="grade-form" action="/admin/grade" method="post">
+                <input type="hidden" name="exam_id" value="{{ exam.id }}">
+                <select name="grade" required>
+                    <option value="">Выберите оценку</option>
+                    {% for g in allowed_grades[exam.assigned_level] %}
+                    <option value="{{ g }}">{{ g }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Поставить оценку</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% for q in questions %}
+        <div class="answer-card">
+            <div class="q-number">Вопрос {{ loop.index }} из {{ questions|length }}</div>
+            <div class="q-text">{{ q.text }}</div>
+            <div class="q-answer">
+                <div class="q-answer-label">Ответ студента</div>
+                <div class="q-answer-text">
+                    {% if answers[q.id|string] %}
+                        {{ answers[q.id|string] }}
+                    {% else %}
+                        <span class="no-answer">Нет ответа</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

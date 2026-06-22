@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель — Экзамен</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 24px; margin-bottom: 24px; color: #1a1a2e; }
+        .add-form {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .add-form h2 { font-size: 16px; margin-bottom: 16px; }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .form-row input, .form-row select {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-row button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #1976d2;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .form-row button:hover { background: #1565c0; }
+
+        .import-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .import-section h2 { font-size: 16px; margin-bottom: 12px; }
+        .import-section p { color: #666; font-size: 13px; margin-bottom: 12px; }
+        .import-section code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .import-form {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .import-form input[type="file"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .import-form button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #2e7d32;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .table-wrap {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            background: #f8f9fa;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: top;
+        }
+        tr:hover { background: #fafafa; }
+        .level-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .level-3 { background: #e8f5e9; color: #2e7d32; }
+        .level-4 { background: #fff3e0; color: #ef6c00; }
+        .level-5 { background: #fce4ec; color: #c2185b; }
+        .status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .status-pending { background: #e3f2fd; color: #1565c0; }
+        .status-done { background: #e8f5e9; color: #2e7d32; }
+        .status-bonus { background: #fff8e1; color: #ef6c00; }
+        .status-bonus_done { background: #f3e5f5; color: #7b1fa2; }
+        .grade-cell { font-weight: 600; font-size: 16px; }
+        .grade-3 { color: #2e7d32; }
+        .grade-4 { color: #ef6c00; }
+        .grade-5 { color: #c2185b; }
+        .grade-pending { color: #888; }
+        .violations {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .violations-0 { background: #e8f5e9; color: #2e7d32; }
+        .violations-low { background: #fff8e1; color: #f57c00; }
+        .violations-high { background: #ffebee; color: #c62828; }
+        .link-cell {
+            font-family: monospace;
+            font-size: 11px;
+            color: #1976d2;
+            word-break: break-all;
+        }
+        .view-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 4px;
+            background: #1976d2;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .grade-form {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .grade-form select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .grade-form button {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 4px;
+            background: #2e7d32;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .bonus-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 4px;
+            background: #ff9800;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .export-btn {
+            margin-bottom: 16px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #2e7d32;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .msg-banner {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Админ-панель экзамена</h1>
+
+        {% if request.query_params.msg %}
+        <div class="msg-banner">{{ request.query_params.msg }}</div>
+        {% endif %}
+
+        <div class="add-form">
+            <h2>Добавить студента</h2>
+            <form action="/admin/add_student" method="post">
+                <div class="form-row">
+                    <input type="text" name="name" placeholder="ФИО" required>
+                    <select name="level" required>
+                        <option value="3">Билет на 3</option>
+                        <option value="4">Билет на 4</option>
+                        <option value="5">Билет на 5</option>
+                    </select>
+                    <button type="submit">Добавить</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="import-section">
+            <h2>Импорт из CSV</h2>
+            <p>Формат: <code>ФИО;уровень</code> (3, 4 или 5). Первая строка — заголовок, будет пропущена.</p>
+            <p>Пример: <code>Иванов Иван;4</code></p>
+            <form class="import-form" action="/admin/import_csv" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" accept=".csv,.txt" required>
+                <button type="submit">Импортировать</button>
+            </form>
+        </div>
+
+        <button class="export-btn" onclick="exportTable()">Экспорт в CSV</button>
+
+        <div class="table-wrap">
+            <table id="studentsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ФИО</th>
+                        <th>Билет</th>
+                        <th>Статус</th>
+                        <th>Основная оценка</th>
+                        <th>Доп. оценка</th>
+                        <th>Нарушения</th>
+                        <th>Начало</th>
+                        <th>Окончание</th>
+                        <th>Ответы</th>
+                        <th>Действия</th>
+                        <th>Ссылка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td>{{ s.id }}</td>
+                        <td>{{ s.name }}</td>
+                        <td><span class="level-badge level-{{ s.assigned_level }}">На {{ s.assigned_level }}</span></td>
+                        <td><span class="status status-{{ s.status }}">{{ s.status }}</span></td>
+                        <td class="grade-cell {% if s.grade is not none %}grade-{{ s.grade }}{% else %}grade-pending{% endif %}">
+                            {% if s.grade is not none %}{{ s.grade }}{% else %}—{% endif %}
+                        </td>
+                        <td class="grade-cell {% if s.bonus_grade is not none %}grade-{{ s.bonus_grade }}{% else %}grade-pending{% endif %}">
+                            {% if s.bonus_grade is not none %}{{ s.bonus_grade }}{% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% set vcount = vmap.get(s.id, 0) %}
+                            <span class="violations {% if vcount == 0 %}violations-0{% elif vcount < 3 %}violations-low{% else %}violations-high{% endif %}">
+                                {% if vcount > 0 %}⚠ {% endif %}{{ vcount }}
+                            </span>
+                        </td>
+                        <td>{{ s.started_at[:16] if s.started_at else '—' }}</td>
+                        <td>{{ s.finished_at[:16] if s.finished_at else '—' }}</td>
+                        <td>
+                            {% if s.exam_id %}
+                            <a href="/admin/view/{{ s.exam_id }}" class="view-btn">Смотреть ответы</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if s.status == 'done' and s.grade is none %}
+                            <form class="grade-form" action="/admin/grade" method="post">
+                                <input type="hidden" name="exam_id" value="{{ s.exam_id }}">
+                                <select name="grade" required>
+                                    <option value="">Оценка</option>
+                                    {% for g in allowed_grades[s.assigned_level] %}
+                                    <option value="{{ g }}">{{ g }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit">Поставить</button>
+                            </form>
+                            {% endif %}
+                            {% if s.status == 'done' and s.bonus_status == 'none' %}
+                            <form style="margin-top:4px;" action="/admin/assign_bonus" method="post">
+                                <input type="hidden" name="student_id" value="{{ s.id }}">
+                                <button type="submit" class="bonus-btn">Назначить доп.</button>
+                            </form>
+                            {% elif s.bonus_status == 'assigned' and s.bonus_exam_id %}
+                            <a href="/admin/view/{{ s.bonus_exam_id }}" class="view-btn" style="margin-top:4px;">Смотреть доп.</a>
+                            {% elif s.bonus_status == 'done' %}
+                            <span style="font-size:12px;color:#2e7d32;">Доп. сдан</span>
+                            {% endif %}
+                        </td>
+                        <td class="link-cell">/{{ s.token }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function exportTable() {
+            const rows = document.querySelectorAll('#studentsTable tr');
+            let csv = [];
+            rows.forEach(row => {
+                let cols = row.querySelectorAll('td, th');
+                let rowData = [];
+                cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
+                csv.push(rowData.join(';'));
+            });
+            const blob = new Blob(["\uFEFF" + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'exam_results.csv';
+            link.click();
+        }
+    </script>
+</body>
+</html>

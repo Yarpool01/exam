@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экзамен — вопросы</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+        }
+        .header-left h2 { font-size: 18px; color: #1a1a2e; }
+        .header-left p { color: #888; font-size: 14px; }
+        .timer {
+            font-size: 28px;
+            font-weight: 700;
+            color: #d32f2f;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer.warning { color: #f57c00; }
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .question-number {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .question-text {
+            font-size: 17px;
+            color: #1a1a2e;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        .answer-area {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        .answer-area:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: #2e7d32;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            margin-bottom: 40px;
+        }
+        .submit-btn:hover { background: #1b5e20; }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay.active { display: flex; }
+        .overlay-content {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+        }
+        .overlay-content h3 { margin-bottom: 12px; font-size: 20px; }
+        .overlay-content p { color: #666; margin-bottom: 20px; }
+        .overlay-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #1976d2;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .security-notice {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="security-notice">
+            ⚠ Копирование, вставка, выделение текста и открытие инструментов разработчика запрещены
+        </div>
+
+        <div class="header">
+            <div class="header-left">
+                <h2>Экзамен</h2>
+                <p>{{ student.name }} — Билет на {{ student.assigned_level }}</p>
+            </div>
+            <div class="timer" id="timer">{{ "%02d"|format(time_limit) }}:00</div>
+        </div>
+
+        <form id="examForm" action="/{{ token }}/submit" method="post">
+            {% for q in questions %}
+            <div class="question-card">
+                <div class="question-number">Вопрос {{ loop.index }} из {{ questions|length }}</div>
+                <div class="question-text">{{ q.text }}</div>
+                <textarea class="answer-area" name="q_{{ q.id }}" placeholder="Введите ваш ответ..." required></textarea>
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="submit-btn">Завершить экзамен</button>
+        </form>
+    </div>
+
+    <div class="overlay" id="timeoutOverlay">
+        <div class="overlay-content">
+            <h3>Время истекло</h3>
+            <p>Экзамен автоматически завершён. Ваши ответы будут отправлены.</p>
+            <button class="overlay-btn" onclick="document.getElementById('examForm').submit()">Отправить ответы</button>
+        </div>
+    </div>
+
+    <script>
+        const token = "{{ token }}";
+        const examId = "{{ exam_id }}";
+        const expires = new Date("{{ expires }}");
+        const timerEl = document.getElementById('timer');
+        const overlay = document.getElementById('timeoutOverlay');
+        const alertBox = document.getElementById('violationAlert');
+        let submitted = false;
+        let violationCount = 0;
+
+        function showViolation(msg) {
+            violationCount++;
+
+            // Send to server
+            fetch('/' + token + '/violation', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: msg, details: 'count:' + violationCount})
+            }).catch(() => {});
+        }
+
+        function updateTimer() {
+            if (submitted) return;
+            const now = new Date();
+            const diff = expires - now;
+            if (diff <= 0) {
+                timerEl.textContent = "00:00";
+                overlay.classList.add('active');
+                submitted = true;
+                setTimeout(() => document.getElementById('examForm').submit(), 2000);
+                return;
+            }
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            timerEl.textContent = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            if (mins < 5) timerEl.classList.add('warning');
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // ─── Anti-copy with alerts ───
+        document.addEventListener('copy', function(e) {
+            showViolation('Попытка копирования текста');
+            return false;
+        });
+
+        document.addEventListener('cut', function(e) {
+            showViolation('Попытка вырезания текста');
+            return false;
+        });
+
+        document.addEventListener('paste', function(e) {
+            showViolation('Попытка вставки текста');
+            return false;
+        });
+
+        document.addEventListener('contextmenu', function(e) {
+            showViolation('Попытка открытия контекстного меню');
+            return false;
+        });
+
+        document.addEventListener('selectstart', function(e) {
+            if (e.target.tagName !== 'TEXTAREA') {
+                showViolation('Попытка выделения текста');
+                return false;
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && ['c','v','x','a','s','p'].includes(e.key)) {
+                showViolation('Горячая клавиша: Ctrl+' + e.key.toUpperCase());
+                return false;
+            }
+            if (e.key === 'F12') {
+                showViolation('Попытка открытия DevTools (F12)');
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+                showViolation('Попытка открытия DevTools (Ctrl+Shift+' + e.key + ')');
+                return false;
+            }
+            if (e.ctrlKey && e.key === 'u') {
+                showViolation('Попытка просмотра исходного кода');
+                return false;
+            }
+        });
+
+        // Detect DevTools open (debugger trick)
+        let devtoolsOpen = false;
+        const threshold = 160;
+        setInterval(() => {
+            const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+            const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+            if ((widthThreshold || heightThreshold) && !devtoolsOpen) {
+                devtoolsOpen = true;
+                showViolation('Обнаружено открытие инструментов разработчика');
+            }
+        }, 1000);
+
+        // Tab switch / blur
+        let blurCount = 0;
+        window.addEventListener('blur', function() {
+            blurCount++;
+            if (blurCount > 1) {
+                showViolation('Переключение вкладки/окна (' + blurCount + ')');
+            }
+        });
+
+        // Resize
+        let resizeCount = 0;
+        window.addEventListener('resize', function() {
+            resizeCount++;
+            if (resizeCount > 3) {
+                showViolation('Изменение размера окна (' + resizeCount + ')');
+            }
+        });
+
+        // Print screen
+        window.addEventListener('keyup', function(e) {
+            if (e.key === 'PrintScreen' || e.key === 'Snapshot') {
+                showViolation('Попытка скриншота (PrintScreen)');
+            }
+        });
+
+        // Before unload
+        window.addEventListener('beforeunload', function(e) {
+            if (!submitted) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // Form submit
+        document.getElementById('examForm').addEventListener('submit', function(e) {
+            const textareas = document.querySelectorAll('.answer-area');
+            let empty = 0;
+            textareas.forEach(t => { if (!t.value.trim()) empty++; });
+            if (empty > 0) {
+                if (!confirm('Вы не ответили на ' + empty + ' вопрос(ов). Завершить экзамен?')) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+            submitted = true;
+        });
+    </script>
+</body>
+</html>

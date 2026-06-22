@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты экзамена</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        h1 { font-size: 24px; margin-bottom: 8px; color: #1a1a2e; }
+        .subtitle { color: #666; margin-bottom: 24px; }
+        .status-block {
+            text-align: center;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .status-wait { background: #fff8e1; }
+        .status-wait .status-icon { color: #ff9800; font-size: 48px; }
+        .status-done { background: #e8f5e9; }
+        .status-done .status-icon { color: #2e7d32; font-size: 48px; }
+        .status-text { font-size: 18px; font-weight: 600; margin-top: 8px; }
+        .status-sub { font-size: 14px; color: #666; margin-top: 4px; }
+        .details { margin-top: 24px; }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label { color: #888; }
+        .detail-value { font-weight: 600; color: #1a1a2e; }
+        .answers-review {
+            margin-top: 24px;
+        }
+        .answers-review h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: #1a1a2e;
+        }
+        .answer-item {
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .answer-item .q-text {
+            font-size: 15px;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .answer-item .q-answer {
+            font-size: 14px;
+            color: #555;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #1976d2;
+        }
+        .answer-item .q-answer em {
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Результаты экзамена</h1>
+        <p class="subtitle">{{ student.name }} — Билет на {{ student.assigned_level }}</p>
+
+        {% if main_exam %}
+            {% if main_exam.score is not none %}
+            <div class="status-block status-done">
+                <div class="status-icon">✓</div>
+                <div class="status-text">Оценено</div>
+                <div class="status-sub">Балл: {{ main_exam.score }} / {{ main_exam.max_score }}</div>
+            </div>
+            {% else %}
+            <div class="status-block status-wait">
+                <div class="status-icon">⏳</div>
+                <div class="status-text">Ожидает проверки</div>
+                <div class="status-sub">Ответы отправлены, преподаватель проверяет</div>
+            </div>
+            {% endif %}
+
+        <div class="details">
+            <div class="detail-row">
+                <span class="detail-label">Основной экзамен</span>
+                <span class="detail-value">
+                    {% if main_exam.score is not none %}{{ main_exam.score }} / {{ main_exam.max_score }}{% else %}На проверке{% endif %}
+                </span>
+            </div>
+            {% if bonus_exam %}
+            <div class="detail-row">
+                <span class="detail-label">Доп. вопросы</span>
+                <span class="detail-value">
+                    {% if bonus_exam.score is not none %}{{ bonus_exam.score }} / {{ bonus_exam.max_score }}{% else %}На проверке{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            <div class="detail-row">
+                <span class="detail-label">Статус</span>
+                <span class="detail-value">
+                    {% if student.bonus_status == 'assigned' %}Назначен доп. экзамен
+                    {% elif student.bonus_status == 'done' %}Доп. экзамен сдан
+                    {% else %}Основной экзамен сдан{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <div class="answers-review">
+            <h3>Ваши ответы</h3>
+            {% for q in main_questions %}
+            <div class="answer-item">
+                <div class="q-text">{{ q.text[:200] }}{% if q.text|length > 200 %}...{% endif %}</div>
+                <div class="q-answer">
+                    {% if main_answers[q.id|string] %}
+                        {{ main_answers[q.id|string] }}
+                    {% else %}
+                        <em>Нет ответа</em>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if bonus_questions %}
+            <h3 style="margin-top: 24px;">Ответы на доп. вопросы</h3>
+            {% for q in bonus_questions %}
+            <div class="answer-item">
+                <div class="q-text">{{ q.text[:200] }}{% if q.text|length > 200 %}...{% endif %}</div>
+                <div class="q-answer">
+                    {% if bonus_answers[q.id|string] %}
+                        {{ bonus_answers[q.id|string] }}
+                    {% else %}
+                        <em>Нет ответа</em>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: #888; padding: 40px 0;">Экзамен ещё не начат.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
