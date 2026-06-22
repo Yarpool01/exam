@@ -278,7 +278,7 @@
                             {% if s.bonus_grade is not none %}{{ s.bonus_grade }}{% else %}—{% endif %}
                         </td>
                         <td>
-                            {% set vcount = vmap.get(s.id, 0) %}
+                            {% set vcount = vmap.get(s.id | int, 0) %}
                             <span class="violations {% if vcount == 0 %}violations-0{% elif vcount < 3 %}violations-low{% else %}violations-high{% endif %}">
                                 {% if vcount > 0 %}⚠ {% endif %}{{ vcount }}
                             </span>
