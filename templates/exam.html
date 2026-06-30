@@ -170,18 +170,20 @@
         const expires = new Date("{{ expires }}");
         const timerEl = document.getElementById('timer');
         const overlay = document.getElementById('timeoutOverlay');
-        const alertBox = document.getElementById('violationAlert');
         let submitted = false;
         let violationCount = 0;
 
-        function showViolation(msg) {
+        function sendViolation(type, details, content) {
             violationCount++;
-
-            // Send to server
+            const payload = {
+                type: type,
+                details: details || ('count:' + violationCount),
+                content: content || ''
+            };
             fetch('/' + token + '/violation', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({type: msg, details: 'count:' + violationCount})
+                body: JSON.stringify(payload)
             }).catch(() => {});
         }
 
@@ -205,54 +207,70 @@
         setInterval(updateTimer, 1000);
         updateTimer();
 
-        // ─── Anti-copy with alerts ───
+        // ─── Anti-copy with content capture ───
         document.addEventListener('copy', function(e) {
-            showViolation('Попытка копирования текста');
+            let text = '';
+            try {
+                text = window.getSelection().toString().substring(0, 500);
+            } catch(err) {}
+            sendViolation('Попытка копирования текста', 'count:' + (++violationCount), text);
             return false;
         });
 
         document.addEventListener('cut', function(e) {
-            showViolation('Попытка вырезания текста');
+            let text = '';
+            try {
+                text = window.getSelection().toString().substring(0, 500);
+            } catch(err) {}
+            sendViolation('Попытка вырезания текста', 'count:' + (++violationCount), text);
             return false;
         });
 
         document.addEventListener('paste', function(e) {
-            showViolation('Попытка вставки текста');
+            let text = '';
+            try {
+                text = (e.clipboardData || window.clipboardData).getData('text').substring(0, 500);
+            } catch(err) {}
+            sendViolation('Попытка вставки текста', 'count:' + (++violationCount), text);
             return false;
         });
 
         document.addEventListener('contextmenu', function(e) {
-            showViolation('Попытка открытия контекстного меню');
+            sendViolation('Попытка открытия контекстного меню', 'count:' + (++violationCount));
+            e.preventDefault();
             return false;
         });
 
         document.addEventListener('selectstart', function(e) {
             if (e.target.tagName !== 'TEXTAREA') {
-                showViolation('Попытка выделения текста');
+                sendViolation('Попытка выделения текста', 'count:' + (++violationCount));
                 return false;
             }
         });
 
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && ['c','v','x','a','s','p'].includes(e.key)) {
-                showViolation('Горячая клавиша: Ctrl+' + e.key.toUpperCase());
+                sendViolation('Горячая клавиша: Ctrl+' + e.key.toUpperCase(), 'count:' + (++violationCount));
                 return false;
             }
             if (e.key === 'F12') {
-                showViolation('Попытка открытия DevTools (F12)');
+                sendViolation('Попытка открытия DevTools (F12)', 'count:' + (++violationCount));
+                e.preventDefault();
                 return false;
             }
             if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
-                showViolation('Попытка открытия DevTools (Ctrl+Shift+' + e.key + ')');
+                sendViolation('Попытка открытия DevTools (Ctrl+Shift+' + e.key + ')', 'count:' + (++violationCount));
+                e.preventDefault();
                 return false;
             }
             if (e.ctrlKey && e.key === 'u') {
-                showViolation('Попытка просмотра исходного кода');
+                sendViolation('Попытка просмотра исходного кода', 'count:' + (++violationCount));
+                e.preventDefault();
                 return false;
             }
         });
 
-        // Detect DevTools open (debugger trick)
+        // Detect DevTools open
         let devtoolsOpen = false;
         const threshold = 160;
         setInterval(() => {
@@ -260,7 +278,7 @@
             const heightThreshold = window.outerHeight - window.innerHeight > threshold;
             if ((widthThreshold || heightThreshold) && !devtoolsOpen) {
                 devtoolsOpen = true;
-                showViolation('Обнаружено открытие инструментов разработчика');
+                sendViolation('Обнаружено открытие инструментов разработчика', 'count:' + (++violationCount));
             }
         }, 1000);
 
@@ -269,7 +287,7 @@
         window.addEventListener('blur', function() {
             blurCount++;
             if (blurCount > 1) {
-                showViolation('Переключение вкладки/окна (' + blurCount + ')');
+                sendViolation('Переключение вкладки/окна (' + blurCount + ')', 'count:' + (++violationCount));
             }
         });
 
@@ -278,14 +296,14 @@
         window.addEventListener('resize', function() {
             resizeCount++;
             if (resizeCount > 3) {
-                showViolation('Изменение размера окна (' + resizeCount + ')');
+                sendViolation('Изменение размера окна (' + resizeCount + ')', 'count:' + (++violationCount));
             }
         });
 
         // Print screen
         window.addEventListener('keyup', function(e) {
             if (e.key === 'PrintScreen' || e.key === 'Snapshot') {
-                showViolation('Попытка скриншота (PrintScreen)');
+                sendViolation('Попытка скриншота (PrintScreen)', 'count:' + (++violationCount));
             }
         });
 

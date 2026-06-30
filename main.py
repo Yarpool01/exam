@@ -104,10 +104,16 @@ def init_db():
                 exam_id INTEGER,
                 violation_type TEXT NOT NULL,
                 details TEXT,
+                content TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (student_id) REFERENCES students(id)
             );
         """)
+        # Migrate: add content column if not exists
+        try:
+            conn.execute("SELECT content FROM violation_logs LIMIT 1")
+        except sqlite3.OperationalError:
+            conn.execute("ALTER TABLE violation_logs ADD COLUMN content TEXT")
         conn.commit()
 
 def get_db():
@@ -166,11 +172,11 @@ def is_expired(started_at: str, level: str) -> bool:
     return datetime.now(timezone.utc) > start + timedelta(minutes=limit)
 
 # ─── Violation logging ───
-def log_violation(student_id: int, vtype: str, details: str = "", exam_id: int = None):
+def log_violation(student_id: int, vtype: str, details: str = "", exam_id: int = None, content: str = ""):
     conn = get_db()
     conn.execute(
-        "INSERT INTO violation_logs (student_id, exam_id, violation_type, details) VALUES (?, ?, ?, ?)",
-        (student_id, exam_id, vtype, details)
+        "INSERT INTO violation_logs (student_id, exam_id, violation_type, details, content) VALUES (?, ?, ?, ?, ?)",
+        (student_id, exam_id, vtype, details, content)
     )
     conn.execute("UPDATE students SET violations = violations + 1 WHERE id = ?", (student_id,))
     conn.commit()
@@ -331,6 +337,7 @@ async def report_violation(token: str, request: Request):
     data = await request.json()
     vtype = sanitize_input(data.get("type", ""))[:50]
     details = sanitize_input(data.get("details", ""))[:500]
+    content = sanitize_input(data.get("content", ""))[:2000]
 
     conn = get_db()
     student = conn.execute("SELECT * FROM students WHERE token = ?", (token,)).fetchone()
@@ -344,7 +351,7 @@ async def report_violation(token: str, request: Request):
     ).fetchone()
     exam_id = exam["id"] if exam else None
 
-    log_violation(student["id"], vtype, details, exam_id)
+    log_violation(student["id"], vtype, details, exam_id, content)
     conn.close()
     return {"status": "logged"}
 

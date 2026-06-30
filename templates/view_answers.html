@@ -73,9 +73,11 @@
         .violations-box .count-high { color: #c62828; }
         .violations-list {
             margin-top: 12px;
+            list-style: none;
+            padding: 0;
         }
         .violations-list li {
-            padding: 6px 0;
+            padding: 10px 0;
             border-bottom: 1px solid #f0f0f0;
             font-size: 14px;
             color: #555;
@@ -83,6 +85,31 @@
         .violations-list li:last-child { border-bottom: none; }
         .violations-list .v-time { color: #888; font-size: 12px; }
         .violations-list .v-type { font-weight: 500; color: #c62828; }
+        .violations-list .v-content {
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: #fff3e0;
+            border-left: 3px solid #ef6c00;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .violations-list .v-content-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .violations-list .v-empty {
+            color: #888;
+            font-style: italic;
+            font-size: 12px;
+        }
         .grade-section {
             background: white;
             border-radius: 12px;
@@ -201,6 +228,14 @@
                     <span class="v-time">{{ v.created_at[:16] }}</span> —
                     <span class="v-type">{{ v.violation_type }}</span>
                     {% if v.details %}<span style="color:#888;font-size:12px;">({{ v.details }})</span>{% endif %}
+                    {% if v.content %}
+                    <div class="v-content">
+                        <div class="v-content-label">Захваченный текст:</div>
+                        {{ v.content }}
+                    </div>
+                    {% else %}
+                    <div class="v-empty">Текст не зафиксирован</div>
+                    {% endif %}
                 </li>
                 {% endfor %}
             </ul>

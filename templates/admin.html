@@ -105,7 +105,21 @@
             color: #666;
             border-bottom: 1px solid #eee;
             white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 20px;
         }
+        th:hover { background: #e9ecef; }
+        th::after {
+            content: '\2195';
+            position: absolute;
+            right: 6px;
+            color: #ccc;
+            font-size: 10px;
+        }
+        th.sort-asc::after { content: '\2191'; color: #1976d2; }
+        th.sort-desc::after { content: '\2193'; color: #1976d2; }
         td {
             padding: 10px;
             border-bottom: 1px solid #f0f0f0;
@@ -154,6 +168,11 @@
             color: #1976d2;
             word-break: break-all;
         }
+        .link-cell a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        .link-cell a:hover { text-decoration: underline; }
         .view-btn {
             padding: 4px 10px;
             border: none;
@@ -247,7 +266,7 @@
         <button class="export-btn" onclick="exportTable()">Экспорт в CSV</button>
 
         <div class="table-wrap">
-            <table id="studentsTable">
+            <table id="studentsTable" class="sortable">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -314,7 +333,7 @@
                             <span style="font-size:12px;color:#2e7d32;">Доп. сдан</span>
                             {% endif %}
                         </td>
-                        <td class="link-cell">/{{ s.token }}</td>
+                        <td class="link-cell" data-token="{{ s.token }}"></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -323,6 +342,59 @@
     </div>
 
     <script>
+        // ─── Full URLs for links ───
+        const origin = window.location.origin;
+        document.querySelectorAll('.link-cell[data-token]').forEach(cell => {
+            const token = cell.getAttribute('data-token');
+            const url = origin + '/' + token;
+            cell.innerHTML = '<a href="' + url + '" target="_blank">' + url + '</a>';
+        });
+
+        // ─── Table sorting ───
+        (function() {
+            const table = document.getElementById('studentsTable');
+            if (!table) return;
+            const headers = table.querySelectorAll('thead th');
+            const tbody = table.querySelector('tbody');
+
+            headers.forEach((th, index) => {
+                th.addEventListener('click', function() {
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const isAsc = !th.classList.contains('sort-asc');
+
+                    // Clear all sort indicators
+                    headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+                    th.classList.add(isAsc ? 'sort-asc' : 'sort-desc');
+
+                    rows.sort((a, b) => {
+                        let aVal = a.cells[index].innerText.trim();
+                        let bVal = b.cells[index].innerText.trim();
+
+                        // Try numeric sort
+                        const aNum = parseFloat(aVal);
+                        const bNum = parseFloat(bVal);
+                        if (!isNaN(aNum) && !isNaN(bNum) && aVal !== '' && bVal !== '') {
+                            return isAsc ? aNum - bNum : bNum - aNum;
+                        }
+
+                        // Date sort (YYYY-MM-DD HH:MM format)
+                        const aDate = new Date(aVal);
+                        const bDate = new Date(bVal);
+                        if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime()) && aVal.length > 10) {
+                            return isAsc ? aDate - bDate : bDate - aDate;
+                        }
+
+                        // Text sort
+                        return isAsc
+                            ? aVal.localeCompare(bVal, 'ru')
+                            : bVal.localeCompare(aVal, 'ru');
+                    });
+
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            });
+        })();
+
         function exportTable() {
             const rows = document.querySelectorAll('#studentsTable tr');
             let csv = [];
